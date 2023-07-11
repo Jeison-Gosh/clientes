@@ -1,0 +1,4 @@
+modelos\Cliente.class
+daoclientes\NewInterface.class
+conexiondb\Postgresdb.class
+gdi\clientes\Clientes.class
