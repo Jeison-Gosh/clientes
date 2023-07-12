@@ -1,11 +1,12 @@
 package modelos;
 
 public class Cliente {
-    
+
     private int id;
     private String nombre;
+    private long cedula;
     private long telefono;
-    private String dirección;
+    private String direccion;
     private String correo;
     private short tipoCliente;
 
@@ -34,11 +35,11 @@ public class Cliente {
     }
 
     public String getDirección() {
-        return dirección;
+        return direccion;
     }
 
     public void setDirección(String dirección) {
-        this.dirección = dirección;
+        this.direccion = dirección;
     }
 
     public String getCorreo() {
@@ -49,6 +50,7 @@ public class Cliente {
         this.correo = correo;
     }
 
+    
     public short getTipoCliente() {
         return tipoCliente;
     }
@@ -57,13 +59,17 @@ public class Cliente {
         this.tipoCliente = tipoCliente;
     }
 
+    public long getCedula() {
+        return cedula;
+    }
+
+    public void setCedula(long cedula) {
+        this.cedula = cedula;
+    }
+
     @Override
     public String toString() {
-        return "Cliente{" + "id=" + id + ", nombre=" + nombre + ", telefono=" + telefono + ", direcci\u00f3n=" + dirección + ", correo=" + correo + ", tipoCliente=" + tipoCliente + '}';
+        return "Cliente{" + "id=" + id + ", nombre=" + nombre + ", cedula=" + cedula + ", telefono=" + telefono + ", direcci\u00f3n=" + direccion + ", correo=" + correo + ", tipoCliente=" + tipoCliente + '}';
     }
-    
-    
-    
-    
-    
+
 }

@@ -1,16 +1,15 @@
 package daoclienteimpl;
 
 import conexiondb.Postgresdb;
-import daoclientes.CRUD;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.LinkedList;
 import modelos.Cliente;
+import daoclientes.CrudClientes;
 
-public class ClienteImpl implements CRUD<Cliente> {
+public class ClienteImpl implements CrudClientes<Cliente> {
 
     private Connection con;
     private ResultSet rs;
@@ -21,97 +20,101 @@ public class ClienteImpl implements CRUD<Cliente> {
     }
 
     @Override
-    public LinkedList<Cliente> listarClientes() throws SQLException {
-        st = con.createStatement();
-        rs = st.executeQuery("SELECT * FROM public.clientes");
-        LinkedList<Cliente> ls = new LinkedList<>();
-        while (rs.next()) {
-            Cliente c = new Cliente();
+    public Cliente listarCliente(long cedula) throws SQLException {
+        PreparedStatement ps = con.prepareStatement("SELECT * FROM public.clientes WHERE cedula = ?");
+        ps.setLong(1, cedula);
+        rs = ps.executeQuery();
+        Cliente c = new Cliente();
+        if (rs.next()) {
             c.setId(rs.getInt(1));
             c.setNombre(rs.getString(2));
             c.setTelefono(rs.getLong(3));
             c.setDirección(rs.getString(4));
             c.setCorreo(rs.getString(5));
             c.setTipoCliente(rs.getShort(6));
+            c.setCedula(rs.getLong(7));
             System.out.println(c.toString());
-            ls.add(c);
         }
-
-        return ls;
+        return c;
     }
 
     @Override
-    public Cliente listarPorId(int id) throws SQLException {
-        throw new SQLException();
-    }
-
-    @Override
-    public boolean registrarCliente(Cliente cliente) throws SQLException {
-        PreparedStatement ps = con.prepareStatement("INSERT INTO clientes (id, nombre, telefono, direccion, correo, tipo_cliente)VALUES(?, ?, ?, ?, ?, ?);");
-        try {
-           ps.setInt(1, cliente.getId());
-           ps.setString(2, cliente.getNombre());
-           ps.setLong(3, cliente.getTelefono());
-           ps.setString(4, cliente.getDirección());
-           ps.setString(5, cliente.getCorreo());
-           ps.setShort(6, cliente.getTipoCliente());
-           ps.execute();
-           return true;
-        } catch (Exception e) {
-            
-        }
-        
-        return false;
-    }
-
-    @Override
-    public boolean actualizarCliente(Cliente cliente) throws SQLException {
-           con.setAutoCommit(false);
-        int id;
-        if (cliente != null) {
-            id = cliente.getId();
-        } else {
-            id = -1;
-        }
-
-        PreparedStatement pst = con.prepareStatement("UPDATE clientes SET nombre=? , telefono=?, direccion=?, correo=?, tipo_cliente=? WHERE id =?");
-        try {
-            pst.setString(1, cliente.getNombre());
-            pst.setLong(2, cliente.getTelefono());
-            pst.setString(3, cliente.getDirección());
-            pst.setString(4, cliente.getCorreo());
-            pst.setShort(5, cliente.getTipoCliente());
-            pst.setInt(6, id);
-            pst.execute();
-            con.commit();
-            return true;
-        } catch (Exception e) {
-            con.rollback();
-        }
-        return false;
-
-    }
-
-    @Override
-    public boolean eliminarCliente(Cliente cliente) throws SQLException {
+    public int registrarCliente(Cliente cliente) throws SQLException {
+        int clienteId = -1;
         con.setAutoCommit(false);
-        int id;
-        if (cliente != null) {
-            id = cliente.getId();
-        } else {
-            id = -1;
-        }
-
-        PreparedStatement pst = con.prepareStatement("DELETE FROM clientes WHERE id =?");
-        try {
-            pst.setInt(1, id);
-            pst.execute();
+        try ( PreparedStatement ps = con.prepareStatement(
+                "INSERT INTO clientes\n"
+                + "(id, nombre, telefono, direccion, correo, tipo_cliente, cedula)"
+                + "VALUES((nextval('clientes_id_seq')),?,?,?,?,?,?)",
+                Statement.RETURN_GENERATED_KEYS)) {
+            System.out.println(cliente);
+            ps.setString(1, cliente.getNombre());
+            ps.setLong(2, cliente.getTelefono());
+            ps.setString(3, cliente.getDirección());
+            ps.setString(4, cliente.getCorreo());
+            ps.setShort(5, cliente.getTipoCliente());
+            ps.setLong(6, cliente.getCedula());
+            ps.execute();
+            rs = ps.getGeneratedKeys();
+            if (rs.next()) {
+                clienteId = rs.getInt(1);
+            }
             con.commit();
-            return true;
+            return clienteId;
+        } catch (SQLException e) {
+            con.rollback();
+            throw new SQLException();
+        }
+    }
+
+    @Override
+    public int actualizarCliente(Cliente cliente) throws SQLException {
+        int clienteId = -1;
+        con.setAutoCommit(false);
+        try ( PreparedStatement ps = con.prepareStatement("UPDATE clientes SET nombre=? , telefono=?, direccion=?, correo=?, tipo_cliente=? WHERE cedula =?",
+                Statement.RETURN_GENERATED_KEYS)) {
+            ps.setString(1, cliente.getNombre());
+            ps.setLong(2, cliente.getTelefono());
+            ps.setString(3, cliente.getDirección());
+            ps.setString(4, cliente.getCorreo());
+            ps.setShort(5, cliente.getTipoCliente());
+            ps.setLong(6, cliente.getCedula());
+            ps.executeUpdate();
+            rs = ps.getGeneratedKeys();
+            if (rs.next()) {
+                clienteId = rs.getInt(1);
+            }
+            con.commit();
+            return clienteId;
         } catch (Exception e) {
             con.rollback();
+            throw new SQLException();
         }
-        return false;
+
+    }
+
+    @Override
+    public int eliminarCliente(Cliente cliente) throws SQLException {
+        int clienteId = -1;
+        con.setAutoCommit(false);
+        if (cliente != null) {
+
+            try ( PreparedStatement ps = con.prepareStatement("DELETE FROM clientes WHERE cedula =?",
+                    Statement.RETURN_GENERATED_KEYS);) {
+                ps.setLong(1, cliente.getCedula());
+                ps.executeUpdate();
+                rs = ps.getGeneratedKeys();
+                if (rs.next()) {
+                    clienteId = rs.getInt(1);
+                }
+                con.commit();
+                return clienteId;
+            } catch (Exception e) {
+                con.rollback();
+                throw new SQLException();
+            }
+        }
+        return clienteId;
     }
 
 }
